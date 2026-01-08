@@ -5,7 +5,14 @@
 
 // Libraries
 export { ExecutionEngine } from './lib/execution-engine'
-export { validateWorkflow } from './lib/validation'
+export {
+  validateWorkflow,
+  validateApiKeys,
+  calculateValidationScore,
+  getValidationGrade,
+  detectCycles,
+  isUrlSafe
+} from './lib/validation'
 export { generateAISDKCode, generateRouteHandlerCode } from './lib/code-generator'
 export { topologicalSort, getNodeInputs } from './lib/topological-sort'
 export * from './lib/node-utils'
