@@ -1,0 +1,75 @@
+# Source files (only ship compiled dist/)
+src/
+*.ts
+!*.d.ts
+
+# Tests
+tests/
+__tests__/
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+test/
+coverage/
+
+# Build config
+tsconfig.json
+tsconfig.*.json
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Editor directories and files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Dependencies
+node_modules/
+
+# Lock files (let users manage their own)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Build artifacts (if any)
+*.tsbuildinfo
+
+# Documentation (if you have development docs)
+docs/
+*.md
+!README.md
+!LICENSE.md
+!CHANGELOG.md
+
+# CI/CD
+.github/
+.travis.yml
+.circleci/
+azure-pipelines.yml
+
+# Misc
+.npmrc
+.prettierrc
+.eslintrc
+.eslintignore
+.prettierignore
