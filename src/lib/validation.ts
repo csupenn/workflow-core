@@ -1,13 +1,5 @@
 import type { Node, Edge } from "@xyflow/react"
-
-export type ValidationIssue = {
-  id: string
-  type: "error" | "warning" | "info"
-  title: string
-  description: string
-  nodeIds: string[]
-  fixable: boolean
-}
+import type { ValidationIssue } from "../types/validation"
 
 const BLOCKED_HOSTS = [
   "localhost",
@@ -99,14 +91,12 @@ export function validateWorkflow(nodes: Node[], edges: Edge[]): ValidationIssue[
   // Check for cycles
   const cycles = detectCycles(nodes, edges)
   if (cycles.length > 0) {
-    cycles.forEach((cycle, index) => {
+    cycles.forEach((cycle) => {
       issues.push({
-        id: `cycle-${index}`,
         type: "error",
-        title: "Cycle Detected",
-        description: `Infinite loop detected. Execution will never complete.`,
-        nodeIds: cycle,
-        fixable: false,
+        nodeId: cycle[0],
+        message: `Cycle detected - Infinite loop found involving nodes: ${cycle.join(' → ')}`,
+        suggestion: "Remove connections that create circular dependencies"
       })
     })
   }
@@ -121,13 +111,13 @@ export function validateWorkflow(nodes: Node[], edges: Edge[]): ValidationIssue[
   const orphanNodes = nodes.filter((node) => !connectedNodes.has(node.id) && node.type !== "start" && nodes.length > 1)
 
   if (orphanNodes.length > 0) {
-    issues.push({
-      id: "orphan-nodes",
-      type: "warning",
-      title: `${orphanNodes.length} Orphan Node${orphanNodes.length > 1 ? "s" : ""}`,
-      description: "These nodes are not connected to the workflow and will not execute.",
-      nodeIds: orphanNodes.map((n) => n.id),
-      fixable: true,
+    orphanNodes.forEach((node) => {
+      issues.push({
+        type: "warning",
+        nodeId: node.id,
+        message: "Orphan node - Not connected to workflow and will not execute",
+        suggestion: "Connect this node to the workflow or remove it"
+      })
     })
   }
 
@@ -135,12 +125,9 @@ export function validateWorkflow(nodes: Node[], edges: Edge[]): ValidationIssue[
   const hasStartNode = nodes.some((node) => node.type === "start")
   if (!hasStartNode && nodes.length > 0) {
     issues.push({
-      id: "no-start-node",
       type: "warning",
-      title: "No Start Node",
-      description: "Add a Start node to define the workflow entry point.",
-      nodeIds: [],
-      fixable: false,
+      message: "No Start node - Workflow needs an entry point",
+      suggestion: "Add a Start node to define where execution begins"
     })
   }
 
@@ -150,12 +137,10 @@ export function validateWorkflow(nodes: Node[], edges: Edge[]): ValidationIssue[
     const hasPath = edges.some((edge) => edge.target === endNode.id)
     if (!hasPath && nodes.length > 1) {
       issues.push({
-        id: `unreachable-end-${endNode.id}`,
         type: "warning",
-        title: "Unreachable End Node",
-        description: "This end node cannot be reached from any other node.",
-        nodeIds: [endNode.id],
-        fixable: false,
+        nodeId: endNode.id,
+        message: "Unreachable End node - Cannot be reached from any other node",
+        suggestion: "Connect this node to the workflow or remove it"
       })
     }
   })
@@ -167,12 +152,11 @@ export function validateWorkflow(nodes: Node[], edges: Edge[]): ValidationIssue[
       case "textModel":
         if (!data.model) {
           issues.push({
-            id: `missing-model-${node.id}`,
             type: "error",
-            title: "Missing Model Configuration",
-            description: "Text Model node requires a model to be selected.",
-            nodeIds: [node.id],
-            fixable: false,
+            nodeId: node.id,
+            field: "model",
+            message: "Text Model node requires a model to be selected",
+            suggestion: "Select an AI model from the configuration panel"
           })
         }
         break
@@ -180,22 +164,19 @@ export function validateWorkflow(nodes: Node[], edges: Edge[]): ValidationIssue[
       case "httpRequest":
         if (!data.url) {
           issues.push({
-            id: `missing-url-${node.id}`,
             type: "error",
-            title: "Missing URL",
-            description: "HTTP Request node requires a URL.",
-            nodeIds: [node.id],
-            fixable: false,
+            nodeId: node.id,
+            field: "url",
+            message: "HTTP Request node requires a URL",
+            suggestion: "Enter a valid HTTP or HTTPS URL"
           })
         } else if (!isUrlSafe(data.url)) {
           issues.push({
-            id: `unsafe-url-${node.id}`,
             type: "error",
-            title: "Unsafe URL Detected",
-            description:
-              "URL points to private network or uses an unsupported protocol. Only public HTTP/HTTPS endpoints are allowed.",
-            nodeIds: [node.id],
-            fixable: false,
+            nodeId: node.id,
+            field: "url",
+            message: "Unsafe URL - Points to private network or uses unsupported protocol",
+            suggestion: "Only public HTTP/HTTPS endpoints are allowed. Avoid localhost, private IPs, and metadata endpoints"
           })
         }
         break
@@ -203,12 +184,11 @@ export function validateWorkflow(nodes: Node[], edges: Edge[]): ValidationIssue[
       case "prompt":
         if (!data.content) {
           issues.push({
-            id: `missing-prompt-${node.id}`,
             type: "warning",
-            title: "Empty Prompt",
-            description: "Prompt node has no content.",
-            nodeIds: [node.id],
-            fixable: false,
+            nodeId: node.id,
+            field: "content",
+            message: "Prompt node has no content",
+            suggestion: "Add prompt text or template"
           })
         }
         break
@@ -216,12 +196,11 @@ export function validateWorkflow(nodes: Node[], edges: Edge[]): ValidationIssue[
       case "conditional":
         if (!data.condition) {
           issues.push({
-            id: `missing-condition-${node.id}`,
             type: "error",
-            title: "Missing Condition",
-            description: "Conditional node requires a condition expression.",
-            nodeIds: [node.id],
-            fixable: false,
+            nodeId: node.id,
+            field: "condition",
+            message: "Conditional node requires a condition expression",
+            suggestion: "Add a JavaScript expression that returns true or false"
           })
         }
         break
@@ -233,13 +212,13 @@ export function validateWorkflow(nodes: Node[], edges: Edge[]): ValidationIssue[
   const unusedOutputs = nodes.filter((node) => !targetNodes.has(node.id) && node.type !== "end" && nodes.length > 1)
 
   if (unusedOutputs.length > 0) {
-    issues.push({
-      id: "unused-outputs",
-      type: "info",
-      title: `${unusedOutputs.length} Node${unusedOutputs.length > 1 ? "s" : ""} with Unused Outputs`,
-      description: "These nodes have outputs that are not connected to any other nodes.",
-      nodeIds: unusedOutputs.map((n) => n.id),
-      fixable: false,
+    unusedOutputs.forEach((node) => {
+      issues.push({
+        type: "info",
+        nodeId: node.id,
+        message: "Node output not connected - Result will not be used",
+        suggestion: "Connect to another node or add an End node"
+      })
     })
   }
 
@@ -271,13 +250,13 @@ export function validateWorkflow(nodes: Node[], edges: Edge[]): ValidationIssue[
   })
 
   if (longChains.length > 0) {
-    issues.push({
-      id: "long-chains",
-      type: "info",
-      title: "Long Execution Chains Detected",
-      description: "Consider adding checkpoints or breaking long chains into smaller workflows for better debugging.",
-      nodeIds: longChains.map((n) => n.id),
-      fixable: false,
+    longChains.forEach((node) => {
+      issues.push({
+        type: "info",
+        nodeId: node.id,
+        message: "Long execution chain detected (>10 nodes deep)",
+        suggestion: "Consider breaking into smaller workflows or adding checkpoints for better debugging"
+      })
     })
   }
 
@@ -302,12 +281,10 @@ export function validateApiKeys(apiKeys: Record<string, string>, nodes: Node[]):
   requiredProviders.forEach((provider) => {
     if (!apiKeys[provider] || apiKeys[provider].trim() === "") {
       issues.push({
-        id: `missing-api-key-${provider}`,
         type: "error",
-        title: `Missing ${provider.charAt(0).toUpperCase() + provider.slice(1)} API Key`,
-        description: `Your workflow uses ${provider} models but no API key is configured. Click API Keys to add it.`,
-        nodeIds: [],
-        fixable: true,
+        message: `Missing ${provider.charAt(0).toUpperCase() + provider.slice(1)} API Key - Workflow uses ${provider} models but no key is configured`,
+        field: provider,
+        suggestion: "Click API Keys to add your credentials"
       })
     }
   })
