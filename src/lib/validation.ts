@@ -13,6 +13,11 @@ const BLOCKED_HOSTS = [
 ]
 
 export function isUrlSafe(url: string): boolean {
+  // Allow relative URLs (same-origin requests are safe)
+  if (url.startsWith('/')) {
+    return true
+  }
+
   try {
     const parsed = new URL(url)
 
