@@ -1,6 +1,6 @@
 {
   "name": "@charliesu/workflow-core",
-  "version": "0.0.2-alpha",
+  "version": "0.0.3-alpha",
   "description": "Shared workflow engine for TopFlow and TaraFlow - React Flow based workflow orchestration",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
